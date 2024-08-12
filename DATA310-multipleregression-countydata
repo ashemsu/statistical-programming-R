@@ -1,0 +1,110 @@
+# DATA-3100
+# Adefoluke Shemsu
+
+setwd("~/Documents/Education/Penn/Classes/DATA 310/Week 5")
+library(tidyverse)
+
+# PROBLEM 1
+
+# 1. Load in the ACSCountyData.Rdata dataset. Run a regression where ‘percent.college’ (the percent within a county that 
+# graduated from college) is the independent variable and ‘median.income’ (the median income in each county) is the
+# a dependent variable.
+
+load("~/Documents/Education/Penn/Classes/DATA 310/Week 5/ACSCountyData.Rdata")
+
+acs.reg <- lm(median.income ~ percent.college, data = acs)
+summary(acs.reg)
+
+# 2. Looking at the output of the regression, first interpret what the estimated coefficient of percent.college means.
+
+# The “percent.college” coefficient tells us by how much the value of the “median.income” variable will increase 
+# over the intercept value for each additional percent of the population that graduates from college. 
+# This coefficient (1015.14) tells us that a county’s median income will increase by just over $1,000 for 
+# each percentage point of the population that graduates from college.
+
+# The intercept here represents the mean value of median income in a county where the percent of the 
+# population that graduated from college is 0. The intercept of 28,897.69 indicates that a county’s median income 
+# is ~$28,897.69 if 0% of the population in that county graduated from college.
+
+# 3. What null hypothesis is being tested automatically for percent.college? What is the alternative hypothesis? 
+# #What is the result of that hypothesis test?
+
+# The hypothesis being tested here is that there is no difference in median income between counties 
+# with higher or lower rates of college completion.
+
+# The alternative hypothesis is that there is a difference in median income between counties with higher or lower 
+# rates of college completion.
+
+# Given the p-value in “percent.college” (<0.00000000000000022***), we can reject that there is no difference between
+# higher or lower college completion rate counties when it comes to median income. Additionally, this means that we cannot reject 
+# the alternative hypothesis that there is a significant difference between higher or 
+# lower college completion rate counties in their median income.
+
+# PROBLEM 2
+
+# 1. Using the same acs data, run a multiple regression where ‘percent.walk.commute’ is your dependent variable
+# and ‘census.region’ is your independent variable.
+
+acs.reg2 <- lm(percent.walk.commute ~ census.region, data = acs)
+summary(acs.reg2)
+
+ # 2. Looking at the output of your regression, interpret what the estimated coefficents mean (don’t forget 
+# to interpret your Intercept!).
+
+table(acs.reg2$census.region)
+mw <- acs%>% 
+  filter(census.region == "midwest")
+
+mean(mw$percent.walk.commute)
+
+# For this problem, the goal is to test whether region significantly impacts the percent of the population that 
+# walks to work.
+
+# The intercept in this regression model tells us the percent of our population that walks to work among our reference group. 
+# For exmaple, we can interpret that the mean value of “percent.walk.commute” is 3.3944 (3.4%) in the Midwest. Each 
+# coefficient tells us: 
+#- % of the population that walks to work in the Northeast are ~.5% higher than the intercept 
+# value of the percent of people that walk to work in the Midwest.
+#- % of the population that walks to work is ~1.5% less in the South than in the Midwest, and
+#- % of the population that walks to work is ~3% higher in the West than in the Midwest.
+
+# 3. Construct a regression formula using your regression output.
+
+# Estimate = 3.3944(Intercept)
+# 0.5072 times (if Northeast)
+# -1.5012 times (if South)
+# 2.9867 times (if West)
+
+# 4.Using your formula, estimate the percent who walk to work in the North East region.
+
+3.3944 + 0.5072*(1) -1.5012*(0) + 2.9867*(0)  #This number is validated by referencing question 3 in this problem set. 
+
+0.5072 + 3.3944
+
+# This regression indicated that the percent of people who walk to work in the Northeast would be 0.5072
+# points higher than the Intercept value of 3.3944 for our Midwest reference group. 3.3944 + 0.5072 is 3.9. Because 
+# of this, we can conclude that the percent of people who walk to work in the Northeast is 3.9%.
+
+# 5. What hypothesis test(s) are being run automatically in this regression?
+
+# Null hypotheses:
+#1. No difference between the baseline group (Midwest) and the Northeast.
+#2. No difference between the baseline group (Midwest) and the South.
+#3. No difference between the baseline group (Midwest) and the West.
+
+# Alternative hypotheses:
+#1. Significant difference between the baseline group (Midwest) and the Northeast.
+#2. Significant difference between the baseline group (Midwest) and the South.
+#3. Significant difference between the baseline group (Midwest) and the West.
+
+# 6. What are the findings of those hypothesis tests?
+
+# Null yypotheses takeaways:
+#1. P-value of 0.0582 indicates a failure to reject the null hypothesis.
+#2. P-value of <0.00000000000000022 indicates a rejection of the null hypothesis.
+#3. P-value of <0.00000000000000022 indicates a rejection of the null hypothesis.
+
+# Alternative hypotheses takeaways:
+#1. P-value of 0.0582 rejects an alternative hypothesis.
+#2. P-value of <0.00000000000000022 indicates a failure to reject the null hypothesis.
+#3. P-value of <0.00000000000000022 indicates a failure to reject the null hypothesis.
