@@ -1,0 +1,85 @@
+# DATA-3100
+# Adefoluke Shemsu
+
+setwd("~/Documents/Education/Penn/Classes/DATA 310/Week 4")
+
+# Note: It will be impossible to receive full credit for this assignment without providing a written explanation of your answers as indicated in each question. These written explanations are important - they help us understand if you are digesting the content and most importantly, they give you practice interpreting your analysis.
+
+# 1.a. This question is going to have you further investigate some polling data. Upload “AZPoll-Fake.Rdata” into R. 
+# Note: this file began as real polling data from the NYT, but I’ve created a fake variable “clinton.thermometer” 
+# so that we have a continuous measure to work with. So don’t take too seriously the conclusions that we draw from 
+# this question.
+  
+load("~/Documents/Education/Penn/Classes/DATA 310/Week 4/AZPollFake2021.Rdata")
+
+head(az)
+
+# b. clinton.thermometer” is a (again, fake) measure of how each respondent feels about Secretary Clinton, with 0 
+# indicating that they feel very “cool” towards her, and 100 indicating they feel very “warm” towards her. 
+# Pretending for a moment that this is a simple random sample, calculate using our known equations:
+# (i) the 95% confidence interval for “clinton.thermometer”;
+# (ii) the 95% confidence interval for “clinton.thermometer” among those voting for clinton (“clinton”==1);
+# (iii) the 95% confidence interval for “clinton.thermometer” among those not voting for clinton (“clinton”==0).
+
+t.test(az$clinton.thermometer)
+
+# The 95% confidence interval for “clinton.thermometer” is 39.92895-46.63562.
+
+voted.clinton <- az%>%
+  filter(clinton == 1)
+
+t.test(voted.clinton$clinton.thermometer)
+
+# The 95% confidence interval for “clinton.thermometer” among people who voted for Clinton is 58.05173-65.81219.
+
+non.clinton.voter <- az%>% 
+  filter(clinton == 0)
+
+t.test(non.clinton.voter$clinton.thermometer)
+
+# The 95% confidence interval for “clinton.thermometer” among people who did not vote for Clinton is 14.15132 to 21.02744.
+
+# c. Perform a t test to find the confidence interval for the difference in means of “clinton.thermometer” for those who 
+# voted for Clinton and those who voted for Trump. Explain your findings.
+
+t.test(clinton.thermometer ~ clinton, data = az)
+
+# A 95% confidence interval for the difference ub means of "clinton.thermometer" for those who voted for Clinton vs. those 
+# who voted for Trump is -49.51253 to -39.17263. This means 95/100 confidence intervals would contain 
+# the true difference in means for the population. In other words, there is a 95% likelihood that the true population 
+# value for the average “clinton.thermometer” score is 49.51253 to 39.17263 points lower among Trump voters than among 
+# Clinton voters.
+
+# d. Confirm for yourself that using the lm() command gives you the same difference in means as the t test function 
+# you got in (c). What does the estimate for “(Intercept)” mean in this output? What does the estimate for “clinton” mean 
+# in this output? (You do not have to use the survey weights provided, though you may.)
+
+clinton.lm <- lm(clinton.thermometer ~ clinton, data = az, weights = final_weight)
+
+summary(clinton.lm)
+
+# This intercept means that the average “clinton.thermometer” value for people who did not vote for Clinton is 17.345. 
+# This can also be confirmed by the answer from (c), where the mean “clinton.thermometer” value for 
+# people who did not vote for Clinton was 17.58938.
+
+# This estimate for “clinton” also means that people who voted for Clinton have an average “clinton.thermometer” 
+# value 44.705 points greater than the average for people who did not vote for Clinton. Based on the previous t test from (c),
+# we found that the mean “clinton.thermometer” value for people who voted for Clinton was 44.34258 points greater 
+# than the average for people who did not vote for Clinton.
+
+# Given that the data is weighted, it doesn't necessary matter that these numbers are not exact matches since they are  
+# close enough to give us confidence that we’re producing the same findings through both methods.
+
+# e. Use the lm() function to build a bivariate regression that uses someone’s years of education to predict their 
+# feelings toward Secretary Clinton. (yseduc is your independent variable and clinton.thermometer is your dependent 
+# variable.) Interpret the “(Intercept)” and “yseduc” estimates.
+
+table(az$yseduc)
+
+clinton.lm2 <- lm(clinton.thermometer ~ yseduc, data = az, weights = final_weight)
+
+summary(clinton.lm2)
+
+# The intercept tells us the expected “clinton.thermometer” score is 28.8305 if people have 0 years of education. 
+# The yseduc estimate appears to tell us that we can expect the “clinton.thermometer” score to increase by 0.8023 for each 
+# additional year of education a person has.
