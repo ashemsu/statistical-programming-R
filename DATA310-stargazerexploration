@@ -1,0 +1,222 @@
+# DATA-3100
+# Adefoluke Shemsu
+
+setwd("~/Documents/Education/Penn/Classes/DATA 310/Week 1")
+
+# 1. The lecture this week discussed some data on legal financial obligations (LFOs) in Alabama. 
+# This question is going to have you explore whether there are racial differences in the amount of 
+# LFOs that people convicted of crimes owe to the state of Alabama within the sample of cases 
+# included in AlabamaCourt.csv. Please do the following in R:
+
+# (a) Read in the dataset AlabamaCourt.csv
+
+al.court <- read.csv("~/Documents/Education/Penn/Classes/DATA 310/Week 1/AlabamaCourt.csv")
+
+# (b) Construct two new variables:
+
+# • A variable, “black”, indicating whether the person convicted of the crime is African-American. 
+# The persons’s race is represented by the variable “race”, with this variable being equal to “B’ when the person 
+# is African-American.
+
+al.court.lfos <- mutate(al.court, # Adding 'black' variable
+       black = al.court$race == "B")
+
+# • A variable, “amountremain”, indicating how much money the person convicted of the crime still owes to 
+# the state of Alabama. This is can be constructed by subtracting the variable “amountpaid”, which 
+# represents how much money the person had paid to date, from the variable “amountdue”, which represents 
+# the total amount of the assessed LFOs.
+
+al.court.lfos <- mutate(al.court.lfos, # Adding amountdue variable
+                   amountremain = (al.court.lfos$amountdue - al.court.lfos$amountpaid))
+
+# Segmenting this data for easier analysis
+al.court.lfos <- subset(al.court.lfos, select = c(amountpaid, amountdue, amountremain, black))
+
+# (c) Use Stargazer to create two descriptive statistics tables. One describing the African-American units in 
+# the sample and one describing the non-African-Americans units in the data. In this table, include three 
+# variables: “amountremain”, “amountdue”, “amountpaid”. Make sure to label the three variables in these 
+# tables so that someone could understand the variable that is being described.
+
+lfos.black <- al.court.lfos%>% # Separating the data into two sets based on 'black' variable
+  filter(al.court.lfos$black == TRUE) 
+lfos.black <- lfos.black%>%
+  select(-black)
+
+lfos.nonblack <- al.court.lfos%>%
+  filter(al.court.lfos$black == FALSE)
+lfos.nonblack <- lfos.nonblack%>%
+  select(-black)
+
+library(stargazer) # Pulling stargazer
+
+# Table 1
+
+stargazer(lfos.black, type = "text", digits = 2, # Table for black payors
+          title = "Alabama Court LFOs (Legal Financial Obligations) | African-Americans",
+          covariate.labels = c("LFO Amount Paid", "LFO Amount Due", "LFO Balance Remaining"))
+
+# Table 2
+
+stargazer(lfos.nonblack, type = "text", digits = 2,# Table for nonblack payors
+          title = "Alabama Court LFOs (Legal Financial Obligations) | Non-African-Americans",
+          covariate.labels = c("LFO Amount Paid", "LFO Amount Due", "LFO Balance Remaining"))
+
+# (d) Create three kernel density plots that compare the distributions of the variables “amountremain”, “amountdue”, 
+# “amountpaid”, respectively, for African-Americans and non-African-Americans.
+
+# Analyzing distribution for 'amountpaid'
+
+ggplot(al.court.lfos, aes(x = amountpaid, color = black))+
+  geom_density()+
+  scale_x_continuous(trans = 'log10', 
+                     breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000))+
+  ggtitle("Distribution of Payments to LFO Balance")+
+  xlab("Amount Paid Toward LFO")+
+  ylab("Density")
+  
+
+# Analyzing distribution for 'amountremain'
+
+ggplot(al.court.lfos, aes(x = amountremain, color = black))+
+  geom_density()+
+  scale_x_continuous(trans = 'log10', 
+                     breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000))+
+  ggtitle("Distribution of Remaining LFO Balances")+
+  xlab("Remaining LFO Balance")+
+  ylab("Density")
+
+# Analyzing distribution for 'amountdue'
+
+ggplot(al.court.lfos, aes(x = amountdue, color = black))+
+  geom_density()+
+  scale_x_continuous(trans = 'log10', 
+                     breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000))+
+  ggtitle("Distribution of Payments Owed on LFO")+
+  xlab("LFO Payments Owed")+
+  ylab("Density")
+
+# (e) Write a paragraph or two, in which you make conclusions about whether there are racial differences in this 
+# sample in the amount of LFOs that people convicted of crimes owe to the state of Alabama 
+# based on the data being summarized in the previous parts of this question.
+
+# There is an argument for racial differences because the data would indicate that black LBO payers are in near-
+# lockstep with each of the rest of the payers combined, implying that if 'non-black' was broken down into each respective 
+# racial group, black payers would be spending disproportionately more than their counterparts. This argument is 
+# challenging to stand on based just on this data, however, as density doesn't tell a full story about this data. 
+
+# I think the most prudent data to integrate with this would be what actual crime was committed, what fees were associated 
+# with the crime, and how long a payer has to pay a balance down, those factors would directly influence LFO balance data.
+# With that added element, it could be easier to surmise whether black payers are impacted disproportionately, given
+# that we would be able to spot clearer disparities in what fees are being paid and whether those fees are related to race
+# or to the nature of a particular crime.
+
+# 2. This problem is going to have you examine some data on the outcomes of college basketball games. 
+
+# I have a theory for why in certain games that underdogs (i.e., the team that is seen as less likely to win 
+# a game before the game starts) will perform better than people expect when the score is higher than people expect, 
+# and favorites (i.e., the team that is seen as more likely to win a game before the game starts) will perform 
+# better than people expect when the score is lower than people expect. To test this theory, I tracked the outcomes 
+# of 241 games between 1/22/2019 - 3/29/2019 in which I assessed my theory would apply. Data about these games are 
+# contained in ”CollegeBasketball.csv”. We are going to examine these data to see whether the empirical evidence is 
+# consistent with my theory.
+
+# Here is a description of the variables contained in “CollegeBasketball.csv”:
+
+# • “Date” is the date that the game took place
+# • “Favorite” is the name of the team that gambler’s thought would be more likely to win the game
+# • “Favorite3” is the percentage of three point shots that the favorite had made in all of their games prior to 
+# the date that game took place. For those of you unfamiliar with basketball, three point shots are those shots 
+# that are taken from more than 20 feet, 9 inches from the basket.
+# • “Underdog” is the name of the team that gambler’s thought would be more likely to lose the game.
+# • “Underdog3” is the percentage of three point shots that the underdog had made in all of their games prior to 
+# the date that game took place. For those of you unfamiliar with basketball, three point shots are those shots 
+# that are taken from more than 20 feet, 9 inches from the basket.
+# • “PredictedDifference” are gamblers’ expectations about the median point differential in the game. That is, they 
+# expect the favorite to win by more points than the predicted difference at roughly the same rate as they expect the 
+# favorite to win by less points than the predicted difference or the favorite to lose the game.
+# • “PredictedPoints’ are gamblers’ expectations about the total number of points that will be scored in the game. That is, 
+# they expect the combined points scored by the favorite and underdog to be above the predicted points at roughly the 
+# same rate as they expect the points scored by the favorite and underdog to be below the predicted points.
+# • “ActualDifference” is how many more points the favorite scored than the underdog in the game , meaning that it is a 
+# negative number when the underdog won the game.
+# • “ActualPoints” is how many combined points the favorite and the underdog scored.
+
+# 3. Please answer the following questions using R:
+ 
+college.bball <- read.csv("~/Documents/Education/Penn/Classes/DATA 310/Week 1/CollegeBasketball.csv")
+
+# (a) Make a new variable that is equal to “PredictedDifference” minus “ActualDifference”. Create a histogram that shows
+# the distribution of this variable. Also report the mean of the absolute value of this variable.
+
+college.bball <- mutate(college.bball, # Adding the variable to the dataframe
+       MedianDiffRange = college.bball$PredictedDifference - college.bball$ActualDifference)
+
+mean(abs(college.bball$MedianDiffRange)) # The mean of the absolute value is 8.27.
+
+# (b) Let W represent the event that the favorite won a basketball game by more points than expected, E represent the event
+# that the favorite won a basketball game by exactly the number of points that were expected, and L be the event that the 
+# favorite won a basketball game by fewer points than expected or lost a basketball game. Make new variables indicating 
+# whether these events occurred in each game and use these variables to calculate within the sample P(W), P(E), and P(L).
+
+college.bball$W <- college.bball$PredictedDifference < college.bball$ActualDifference # Creating variables for each outcome
+college.bball$E <- college.bball$PredictedDifference == college.bball$ActualDifference
+college.bball$L <- college.bball$PredictedDifference > college.bball$ActualDifference
+
+# (c) Make a new variable that is equal to “PredictedPoints” minus “ActualPoints”. Create a histogram that shows 
+# the distribution of this variable. Also report the mean of the absolute value of this variable.
+
+college.bball$PointDiffRange <- college.bball$PredictedPoints - college.bball$ActualDifference
+
+ggplot(college.bball, aes(x = PointDiffRange))+ # Plotting the histogram
+  geom_histogram()+
+  ggtitle("College Basketball Game Point Spreads")+
+  xlab("Point Differential Range")+
+  ylab("Number of Games")
+
+mean(abs(college.bball$PointDiffRange)) # The mean of the absolute value is 136.47.
+
+# (d) Let M represent the event that more combined points were scored than expected, T represent the event that the 
+# combined points scored were exactly the number expected, and F represent the event that fewer combined points were 
+# scored than expected. Make new variables indicating whether these events occurred in each game and use these variables 
+# to calculate within the sample P(M), P(T), and P(F).
+
+college.bball$M <- college.bball$PredictedPoints < college.bball$ActualPoints # Creating new variables
+college.bball$T <- college.bball$PredictedPoints == college.bball$ActualPoints
+college.bball$F <- college.bball$PredictedPoints > college.bball$ActualPoints
+
+# (e) Using the conditional probability formula discussed in lecture, calculate within 
+# the sample: P(W|M),P(L|M),P(W|F),P(L|F).
+
+# The probability of the favorite winning a basketball game by more points than expected, given that more 
+# combined points were scored than expected, is 16.6%.
+
+table(college.bball$W & college.bball$M)
+mean(college.bball$W & college.bball$M)
+
+# The probability that the favorite won a basketball game by fewer points than expected or lost a basketball game,
+# given that more combined points were scored than expected, is 21.2%.
+
+table(college.bball$L & college.bball$M)
+mean(college.bball$L & college.bball$M)
+
+# The probability of the favorite winning a basketball game by more points than expected, given that fewer combined 
+# points were scored than expected, is 31.9%.
+
+table(college.bball$W & college.bball$F)
+mean(college.bball$W & college.bball$F)
+
+# The probability that the favorite won a basketball game by fewer points than expected or lost a basketball game,
+# given that fewer combined points were scored than expected, is 23.2%.
+
+table(college.bball$L & college.bball$F)
+mean(college.bball$L & college.bball$F)
+
+#(f) Write a paragraph or two, in which you make conclusions about whether the evidence is consistent with 
+# my theory based on the data being summarized in the previous parts of this question.
+
+# The evidence presented in by these experiments indicates what could be a correlation to the aforementioned theory 
+# that underdogs will perform better in certain games than people expect when the score is higher than people expect, 
+# and favorites will perform better than people expect when the score is lower than people expect. This has been
+# been largely demonstrated by the differences in probability above, though to validate this, we would need to assume 
+# that lesser probability for the favored team implies improved probability for the underdog team. 
+# To get better data, I think the questions and analysis would need to orient toward underdog teams.
