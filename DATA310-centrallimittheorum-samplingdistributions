@@ -1,0 +1,141 @@
+#Adefoluke Shemsu
+#DATA 310
+
+setwd("~/Documents/Education/Penn/Classes/DATA 310/Week 3")
+
+#1. In your own words, explain what a sampling distribution is. Provide an example of what a sampling distribution 
+# tells us by using a variable of your choosing (you do not need to construct anything in R. Just write as many 
+# sentences as you need to explain the concept in a way that a friend of yours might understand the gist.)
+
+# A sampling distribution is a set of expected values for a particular variable in a series of samples. In other words,
+# it is a random list (vector) of numbers obtained through repeated sampling of a specific population.
+
+# 2. Suppose you are tasked with helping your boss understand the importance of having a sufficient budget for 
+# working with survey data. (Sampling more people costs more money!) Your office is going to run a survey that asks 
+# respondents to rate their feelings towards a particular public policy on a scale of 0-100. You know that the 
+# expected value of that r.v. is 76 and that it has a variance of 35. Applying the Central Limit Theorem, use 
+# R to answer the following questions to help your boss see the light:
+  
+# a. What is the probability that the average is between 73 and 78 in a random sample of 50 observations?
+
+sem <- sqrt(35)/sqrt(50)
+
+(pnorm(78, 76, sem) - pnorm(73, 76, sem)) * 100
+
+# There is just over a 99% probability that your mean response value will be between 73 and 78 
+# if you survey a sample of 50 respondent.
+
+# b. Find a symmetric 99 percent confidence interval on the mean in a random sample of 75 observations.
+
+sem2 <- sqrt(35)/sqrt(75)
+
+100-99
+1/2
+.5/100
+.99 + 0.005
+
+qnorm(.995, 76, sem2) 
+qnorm((1-.995), 76, sem2)
+
+# 99% of sample means will be between ~74.24 and 77.76 if you survey a sample of 75 respondents.
+
+# c. How large must my sample be in order for there to be a 95 percent probability that my sample average is 
+# between 75.5 and 76.5? (hint: you will need to use the qnorm function)
+
+100-95
+5/2
+2.5/100
+95 + .025
+
+qnorm(.975, mean = 0, sd = 1)
+x <- (sqrt(35)/(0.5/qnorm(.975)))^2
+
+x
+
+qnorm(.975, mean = 76, sqrt(35)/sqrt(x))
+qnorm((1-.975), mean = 76, sqrt(35)/sqrt(x))
+
+# For there to be a 95% probability that our sample mean will be within 0.5 of the random variable’s expected value of 76, 
+# we would need to survey 538 people.
+
+# d. Using the calculations you just made, write a short paragraph to your boss explaining how your office benefits 
+# from spending a little more on surveying more people.
+
+# A survey group of 50 or 75 people could produce a relatively valid result from this sample, but there would still be
+# a margin of error of 2%-3% away from the value we want to estimate.
+
+# What I've found, however, is the best group to sample for maximum ROI would be just under 540 people--538 to be exact.
+# Our team is 95% confident in the validity of this number--both in ROI for you and in terms of producing the most accurate
+# results. 
+
+# As demonstrated by the data, rather than a 2%-3% margin of error, this sample would reduce the margin to less 
+# than 1% (.5%). As far as mathematical accuracy goes, this would qualify as getting as close to certainty as one can.
+
+# 3. One thing that we do when we make election projections is collect data from a sample of precincts and project 
+# something about what vote outcomes are likely to be in the entire state based on what we observe in the sample. 
+# We are going to do a simplified example of this using data from Ohio’s 2016 presidential election. You will find on 
+# Canvas a dataset entitled “Ohio2016.xlsx.” This dataset contains the number of ballots cast for Trump, Clinton, 
+# and all other candidates in this election by precinct).
+
+# a. Load this dataset into R (I used the read excel() function from the readxl library). Construct a variable that is
+# equal to Trump’s vote in a precinct divided by the total number of votes in the precinct. Plot a histogram of this
+# variable. Would the pdf of this variable be well approximated by a normal distribution?
+
+# No; this doesn’t give us quite the bell curve shape we’d expect for a normal distribution.
+
+ohio2016 <- read_excel("~/Documents/Education/Penn/Classes/DATA 310/Week 3/Ohio2016.xlsx")
+
+ohio2016$PercVotedTrump <- ohio2016$Trump/ohio2016$Ballots
+
+ggplot(ohio2016) +
+  geom_histogram(aes(x = PercVotedTrump))
+
+# b. Calculate the population mean and variance for Trump’s vote share in a precinct.
+
+mean(ohio2016$PercVotedTrump) # Population mean: 0.5065674 (50.66%)
+sum((ohio2016$PercVotedTrump - 0.5065674)^2)/length(ohio2016$PercVotedTrump) # Variance: 0.041556 (4.15%)
+
+# c. Suppose we sampled Trump’s vote share from 40 randomly selected precincts on Election Night and averaged them 
+# together. Combine your knowledge of the population mean and variance and the Central Limit Theorem to make a 
+# prediction about what the 99 percent confidence interval would be on this statistic (hint: you will need to use 
+# the qnorm function).
+
+sem3 <- sqrt(0.041556)/sqrt(40)
+
+qnorm(.995, 0.5065674, sem3) 
+qnorm((1-.995), 0.5065674, sem3) 
+
+# 99% of the sample means will be between 0.4235433 (42.35%) and 0.5895915 (58.96%) if you sample 40 randomly selected precincts.
+
+# d. Calculate the bounds of this 99 percent confidence interval if 80 or 120 precincts were sampled instead.
+
+sem4 <- sqrt(0.041556)/sqrt(80)
+
+qnorm(.995, 0.5065674, sem4) 
+qnorm((1-.995), 0.5065674, sem4) 
+
+# 99% of the sample means will be between 0.4478605 (44.79%) and 0.5652743 (56.53%) if 80 precincts are sampled.
+
+sem5 <- sqrt(0.041556)/sqrt(120)
+
+qnorm(.995, 0.5065674, sem5) 
+qnorm((1-.995), 0.5065674, sem5) 
+
+# 99% of the sample means will be between 0.4586334 (45.86%) and 0.5545014 (55.45%) if 120 precincts are sampled.
+
+# e. One of the variables in the Excel sheet is the region in Ohio that the precinct is located in. Calculate the 
+# percentage of precincts from each region.
+
+ohio2016%>% 
+  group_by(Region)%>% 
+  summarise(count = n())%>%
+  mutate(freq = round(count/sum(count), 3))%>%
+  arrange(desc(freq))
+
+# Percentage of precincts from each region:
+# Northeast: 37.6%
+# Central: 19.8%
+# Southwest: 14.6%
+# West: 12.2%
+# Northwest: 9%
+# Southeast: 6.8%
