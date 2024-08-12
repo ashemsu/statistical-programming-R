@@ -1,0 +1,294 @@
+# DATA-3100
+# Adefoluke Shemsu
+
+##Setup workspace and console##
+
+# Setting working directory
+
+setwd("~/Documents/Education/Penn/Classes/DATA 310/Week 8")
+
+# Pulling packages that might be needed
+
+library(tidyverse)
+library(survey)
+library(sandwich)
+library(stargazer)
+
+# Pulling data set
+
+load("~/Documents/Education/Penn/Classes/DATA 310/Week 8/ANES20Datafor310.Rdata")
+
+##PART 1: Cleaning data and preparing variables##
+
+# State
+
+anes$state <- anes$V203001
+
+# Biden thermometer
+
+anes$biden.t <- anes$V201151
+
+anes$biden.t[anes$biden.t %in% c(-9,-4,998)] <- NA
+summary(anes$biden.t)
+table(anes$biden.t)
+
+# Trump thermometer
+
+anes$trump.t <- anes$V201152
+
+anes$trump.t[anes$trump.t %in% c(-9)] <- NA
+
+summary(anes$trump.t)
+table(anes$biden.t)
+
+# Respondent political thermometer
+
+anes$poli.t <- anes$V201200 
+# Relegating nuanced sentiments to larger political buckets and removing moderates because 
+# I want to zoom in on conservative/liberal thoughts
+anes$poli.t[anes$poli.t %in% c(-9,-8,99, 4)] <- NA
+anes$poli.t[anes$poli.t %in% c(1,2,3)] <- 0
+anes$poli.t[anes$poli.t %in% c(5,6,7)] <- 1
+
+
+##Variables to measure belief in how much a president changes corruption beliefs##
+
+# Trust themometer in Washington to do the right thing
+
+anes$trust.wa <- anes$V201233
+
+anes$trust.wa[anes$trust.wa %in% c(-9,-8)] <- NA
+anes$trust.wa[anes$trust.wa %in% c(1,2,3)] <- 0
+anes$trust.wa[anes$trust.wa %in% c(4,5)] <- 1
+
+
+# Government for few wealthy or many citizens
+
+anes$oligopoly.t <- anes$V201234
+
+anes$oligopoly.t[anes$oligopoly.t %in% c(-9,-8)] <- NA
+anes$oligopoly.t[anes$oligopoly.t %in% c(1)] <- 0
+anes$oligopoly.t[anes$oligopoly.t %in% c(2)] <- 1
+
+# Corruption thermometer since Trump election
+
+anes$corruption.t <- anes$V201380
+
+anes$corruption.t[anes$corruption.t %in% c(-9,-8)] <- NA
+anes$corruption.t[anes$corruption.t %in% c(1,3)] <- 0
+anes$corruption.t[anes$corruption.t %in% c(2)] <- 1
+
+##Creating weight variables##
+
+# Weight
+
+anes$weight<- anes$V200010a
+
+# Removing unnecessary variables for a cleaner look/easier navigation
+
+anes <- anes[,63:70]
+
+##Begin Report##
+
+# When it comes to corruption, does the president matter? As of late, the prevailing anecdotal sentiment within 
+# America's political zeitgeist is that it doesn't matter who sits in that chair because they'll always serve 
+# the interest of their corporate and political allies while doing the bare minimum for the citizenry.
+
+# This experiment will attempt to confirm that the public's trust in government doesn't change with President Biden, whether
+# or not they like him, using 2020 election data. This hypothesis is built on an observation of the collective frustration
+# with our government and elected officials on both sides of the aisle. Though the context in which either side 
+# is displeased with our government can vary greatly, our goal is to explore the relationship between political survey 
+# respondent's beliefs around government corruption and the prospect of Biden as a president.
+
+# In fewer words, is corruption politically agnostic? If so,  will be reflected in respondents' thoughts on Biden.
+
+##PART 2: Analysis##
+
+# To explore this relationship, I will be using the American National Election Study, an academic study of the 
+# American adult populations with a sample size of 8,280 participants.
+
+# My primary variable of interest here is the “Feeling Thermometer”, or 'biden.t', for Joe Biden. 
+# It measures how respondents feel toward Biden, with 0 = cold, 50 = neutral, and 100 = hot. 
+# A mean of 49.24 for biden.t projects a relative indifference to Biden, which is 10 points higher on average than Donald 
+# Trump's thermometer, indicating a slight improvement in how the public feels about him as a presidential candidate. 
+# This difference, however, does not necessarily imply that respondents will believe that the government is any less
+# corrupt, as this response could come down to overall temperament of both individuals on TV or in debates.
+
+# I chose to include the Trump Thermometer in this analysis because it sets a baseline for the validity of my hypothesis.
+# The stark difference in the volume of respondents that felt colder toward Trump than Biden (visualized below) indicates a 
+# more positive feeling for Biden over Trump.
+
+summary(anes$biden.t)
+plot(density(anes$biden.t, na.rm = T), lwd = 2,
+     xlim =c(0,100),
+     xlab ="Feeling: Cold(0) to Hot (100)",
+     main ="Biden Feeling Thermometer")
+
+summary(anes$trump.t)
+plot(density(anes$trump.t,na.rm = T), lwd = 2,
+     xlim = c(0,100),
+     xlab ="Feeling: Cold(0) to Hot (100)",
+     main ="Trump Feeling Thermometer")
+
+table(anes$biden.t > 50)
+4036/(4036+4024)
+
+table(anes$trump.t > 50)
+3344/(3344+4704)
+
+# 50.07% of respondents had a warm to hot feeling about Biden, as opposed to 41.55% for Trump. 
+# This pre-established sentiment lays a foundation on which to avoid negative bias that might impact the number 
+# of individuals who believe corruption does not change by supporting Biden. In other words, higher support for Biden
+# that also correlates with public sentiments around corruption would support the hypothesis that liking Biden does not
+# equate to liking or trusting the government.
+
+# The variables that will help me to understand whether respondents' beliefs around government corruption are impacted by
+# a more well-liked presidential candidate are 'trust.wa', 'oligopoly.t', and 'corruption.t'. 
+
+# 'trust.wa' measures how often respondents believe they can trust the government Washington to do the right thing, with 
+# trust levels broken down to 0 = 'Over half of the time', 1 = 'Less than half of the time'. Within these figures,
+# 'Over half of the time' encompasses 1 = 'Always', 2 = 'Most of the time', 3 = 'About half of the time',
+# 4 = 'Some of the time', and 5 = 'Never'. This variable will help me determine whether 
+# the number of people who feel warm (> 50 on the Biden Thermometer) toward Biden feel more trusting of 
+#the government in comparison to Trump.
+
+# For sake of clarity, I will being isolating this data in a separate set to only include self-identifying conservatives 
+# and liberals. This is defined by 'poli.t', which is broken down into binary variables where 0 = 'Extremely liberal', 
+# 'Liberal', and 'Slightly liberal' and 1 = 'Slightly conservative', 'Conservative', and 'Extremely Conservative'.
+# Moderates, while prudent for political discourse, create ambiguity, as they can sway in either direction, 
+# and my main focus is to analyze respondents that fit the primary, binary political philosophies. 
+
+anes2 <- drop_na(anes)
+
+table(anes2$poli.t)
+
+# Once isolated (and once NAs have been removed), the next goal to be to ensure the politcal data is balance. That is to say,
+# to ensure both parties are equally represented by our self-identifying sample of respondents. Based on my anaysis,
+# we have 2,411 liberals and 2,597 conservatives. Let's see how removing moderates and NAs from the sample changes the Trump
+# and Biden thermometers.
+
+plot(density(anes2$biden.t, na.rm = T), lwd = 2,
+     xlim =c(0,100),
+     xlab ="Feeling: Cold(0) to Hot (100)",
+     main ="Biden Feeling Thermometer 2.0")
+
+plot(density(anes2$trump.t,na.rm = T), lwd = 2,
+     xlim = c(0,100),
+     xlab ="Feeling: Cold(0) to Hot (100)",
+     main ="Trump Feeling Thermometer 2.0")
+
+# As seen above, the difference is nominal at best, which allows me to begin investigating the relationship between
+# how people feel about Biden and how they feel about the government. That said, now we will begin to review respondents'
+# thoughts on corruption. The first variable will be 'trust.wa' below.
+
+barplot(prop.table(table(anes2$trust.wa)),
+        xlab="", 
+        ylab = "How Often?",
+        names.arg = c("Over Half the Time", "Less Than Half the Time"),
+        axes = F,
+        main = "Will Washington to do the Right Thing?")
+
+# 'oligopoly.t' measures whether respondents believe our government is run by a few wealthy individuals for their own 
+# interests, or exists for and by the people. Within this variable, 0 = 'Run by a few big interests' and 1 = 'For the
+# benefit of all the people'. This variable will  cement the existence of a relationship between how respondent feels 
+# about Biden and whether feeling more strongly for him changes their perspective on who our government serves.
+
+barplot(prop.table(table(anes2$oligopoly.t)),
+        xlab = "", 
+        ylab = "Big Interests or The People?",
+        names.arg = c("A Few Big Interests","Benefit of All"),
+        axes = F,
+        main = "Who Does Our Government Serve?")
+
+# 'corruption.t' measures whether respondents believe overall government corruption has increased, decreased, or stay the 
+# same since Trump was elected. Within it, 0 = 'Increased or Not Change, and 1 = 'Decreased'. I chose to group Increased
+# and Not Changed because they collectively reflect a more a pessimistic view of government.
+# This variable in particular should help us to better understand whether feelings about Biden are consistent 
+# with the hypothesis that people still distrust government because the presence of a warmer feeling
+# toward Biden and a belief that corruption has decreased since Trumps election, for example, proves the null hypothesis.
+
+barplot(prop.table(table(anes2$corruption.t)),
+        xlab = "", 
+        ylab = "Corruption Has:",
+        names.arg = c("Increased or Stayed Same", "Decreased"),
+        axes = F,
+        main = "Gov Corruption Since Trump's Election")
+
+# Below, I have modeled a series of regression analyses of the relationship between respondent's feeling about Biden
+# and their feelings about government corruption, as defined by the aforementioned variables.
+
+# Biden Thermometer and Respondent Trust in DC to do the Right Thing:
+
+biden.dctrust <- lm(biden.t ~ trust.wa, data = anes2)
+summary(biden.dctrust)
+
+# First, we can see that a p-value that is > .05 (.692), which indicates that there isn't a significant influence or 
+# relationship between the feelings for Biden and a belief in weather the government will generally do the right thing. 
+# This fails to reject the null hypothesis.
+
+# Biden Thermometer and Respondent Belief that Government Serves Interests Over People:
+
+biden.oli <- lm(biden.t ~ oligopoly.t, data = anes2)
+summary(biden.oli)
+
+#Comparison to Trump for context:
+
+trump.oli <- lm(trump.t ~ oligopoly.t, data = anes2)
+summary(trump.oli)
+
+# Next is the belief in a significant relationship between the Biden Thermometer and respondents' thoughts on whether
+# the government serves Big Interests over the benefit of all. In this analysis, the p-value of 3.03e-11 tells
+# us that there is a very significant influence that rejects the null hypothesis. The intercept of 47.7 represents the 
+# mean feeling of a respondent whose answer to 'oligopoly.t' was 0. Because 0 = 'Run by a few big interests', this
+# leads me to the tentative conclusion that conservatives and liberals who felt relatively cool toward Biden (while still
+# feeling even colder toward Trump with an intercept of 39.84) also believe that the government is run by a few big interests
+# and does not serve the good of the people.
+
+# Biden Thermometer and Respondent Belief that Corruption has Changed since Trump's election:
+
+biden.corrupt <- lm(biden.t ~ corruption.t, data = anes2)
+summary(biden.corrupt)
+
+#Comparison to Trump for context:
+
+trump.corrupt <- lm(trump.t ~ corruption.t, data = anes2)
+summary(trump.corrupt)
+
+# Last is the relationship between the belief in how Trump's presidency propagated corruption and how respondents
+# feel about Biden. The p-value of 2.2e-16 demonstrates another significant influence that rejects the null hypothesis. 
+# The intercept of 52.58 represents the mean feeling of a respondent whose answer to 'corruption.t' was 0, where 0 = 
+# 'Increase or Stayed the Same'. This leads me to the believe that conservatives and liberals who felt positively toward
+# Biden also feel as if Trump's 2016 presidency led had no impact on or exacerbated government corruption.
+
+# Conclusion and Takeaways
+
+# Overall, my hypothesis that self-identifying, binary (conservative vs liberal) political respondents' responses would
+# reflect an apathetic, pessimistic view of government was not proven. Conversely, this data tells a more logical,
+# common-sense story.
+
+# The story that I've gleaned from this data analysis is that a respondent's beliefs in a corruptible or ineffective  government
+# is also tied to a negative feeling both toward Biden and Trump, regardless of whether they're a conservative or liberal.
+# While there is a significant correlation between the two, my initial hypothesis drew the wrong conclusion, as it appears
+# that there is a still correlation with how people feel about Biden specifically. 
+
+# For example, in the 'biden.corrupt' regression that analyzes the relationship between 'bidet.t' and 'corrupt.t', the 
+# average respondent feeling toward Biden was positive (50 > on thermometer). Given that these same respondents generally
+# felt drastically more negatively toward Trump, this implies that that both liberals and conservatives both do care
+# about who sits in that presidential seat. Comparing that same 'corrupt.t' data against 'trump.t' which produced an intercept
+# of 34.28 supports this notion.
+
+# Overall, it appears that I would have be easier to reject a null hypothesis if my broadened my hypothesis. Rather than 
+# focus on whether respondent's didn't care, I could instead have hypothesized about the relationship between a respondent's
+# feeling toward Biden in comparison to their feelings about Trump, then use that information to understand how Trump's presidency 
+# might have impact a respondent's perspective on corruption and servant leadership at a federal level. 
+
+# Recalling my initial statements about a common-sense story, this is a summary of my findings:
+# - When it comes to a respondent's trust in Washington to do the right thing, there is no correlation with how they 
+# feel about Biden.
+# - When it comes to a respondent's belief that our government is run by large corporate interests, the correlation 
+# was actually found in those individuals who are displeased with both candidates, given that the mean temperature for
+# both candidates was < 50, which equates a cool to cold feeling.
+# - When it comes to the belief that Trump's presidency increased, decreased, or maintained levels of government corruption,
+# this was the only variable where the mean was disproportionately positive toward Biden vs Trump, indicating a strong
+# correlation between a respondent's belief about Trump's previous performance and their desire to see a new White House
+# under Biden. This also may demonstrate a built-in bias in respondents, given the warmer feeling toward Biden.
