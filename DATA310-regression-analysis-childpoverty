@@ -1,0 +1,207 @@
+# DATA-3100
+# Adefoluke Shemsu
+
+setwd("~/Documents/Education/Penn/Classes/DATA 310/Week 6")
+library(tidyverse)
+
+# PROBLEM 1
+
+# We are going to work again the ACS County Data to investigate the relationship between median household income 
+# and the percent of children living in poverty in counties. Load in the “ACSCountyData.Rdata” dataframe.
+
+load("~/Documents/Education/Penn/Classes/DATA 310/Week 6/ACSCountyData.Rdata")
+
+# 1. First, to make things more readable, recode the median.income variable to be expressed in thousands of dollars.
+
+acs$median.income <- acs$median.income/1000
+
+# 2. Plot the relationship between median income on the x axis and percent child poverty on the y axis and describe what you see.
+
+plot(acs$median.income, 
+     acs$percent.child.poverty, 
+     xlab = "Median Income", 
+     ylab = "Percent Child Poverty", 
+     pch = 16)
+
+# Child poverty rates and median income appear to be directly correlated in the sense that
+# higher poverty rates will typically also mean lower median incomes based on this data. 
+# This relationship can also be demonstrated by the fact that the majority of the most impoverished children in this 
+# population sample with the highest percentages of child poverty (greater than 40%) almost all fall well into the 
+# lowest percentile of median income. With a maximum median income of nearly $140,000, we can reasonably infer that 
+# the 25th percentile for this group would be $35,000, and still a large chunk of the most impoverished lie between $0 
+# and $35,000, implying a strong correlation between child poverty and overall earning potential as well.
+
+# 3. Run a bi-variate linear regression on this relationship, discuss what the coefficients (including the intercept) 
+# mean, and visualize the result on top of the scatterplot you produced above. Just to make things easier for the 
+# next step, you may want to use code similar to this to plot the result:
+
+child.pov.lm <- lm(percent.child.poverty ~ median.income, data = acs)
+
+summary(child.pov.lm)
+
+ggplot(acs, aes(x = median.income, y = percent.child.poverty)) +
+  geom_point() +
+  ylim(0,100) +
+  labs(x = "Median Income (Thousands)", y = "Percent Childen in Poverty") +
+  geom_smooth(method = lm, 
+              formula = y ~ poly(x, 1), 
+              se = FALSE)
+
+# The intercept means the average value of percent.child.poverty when median.income equals zero will be 53.58%.
+
+#The coefficient for median.income means that for each additional point median.income increases, percent.child.poverty 
+# will decrease by 0.6132 on average, which supports our initial theory in question #2.
+
+# 4. Looking at this relationship visually, why doesn’t this regression satisfy Gauss-Markov Assumption 2 
+# (functional form)? Add the square of median.income to your model and determine whether this improves model fit, 
+# making reference to both the visual change in the regression line and to the R2 of each model.
+  
+acs$median.income.2  <- acs$median.income^2
+
+child.pov.lm2 <- lm(percent.child.poverty ~ median.income + median.income.2, data = acs )
+
+summary(child.pov.lm2)
+
+ggplot(acs, aes(x = median.income, y = percent.child.poverty)) +
+  geom_point() +
+  ylim(0,100) +
+  labs(x = "Median Income (Thousands)", y = "Percent Childen in Poverty") +
+  geom_smooth(method = lm, formula = y ~ poly(x, 2), se = FALSE)
+
+# Gauss-Markov Assumption 2 is defined by specifying the functional form of the relationship between your 
+# explanatory variables and dependent variable. The plot above demonstrates that the model we’ve specified is
+# not representation of the actual relationship between our variables. When we used a squared term for median.income, 
+# we can see that the regression line on our plot above more closely follows the distribution of the points on our plot.
+
+# The R2 of this model tells us how well the data fits the regression model. The rule of thumb typically is a higher R2 
+# value indicates better fit. The R2 value of the original model was 0.5547, and the value of our 
+# model with the squared term is 0.7037. This demonstrates improvement from ~55% of the variability in 
+# percent.child.poverty explained by the first model to ~70% of the variability in percent.child.poverty
+# explained by the second model.
+
+# 5. In this new regression with a second order polynomial term, what is the the effect of an additional 1000 dollars 
+# in median income when median income is at 30k? What is the the effect of an additional 1000 dollars in median income 
+# when median income is at 100k? Does this make theoretical sense?
+
+coef(child.pov.lm2)
+
+coef(child.pov.lm2)[2] + 2*coef(child.pov.lm2)[3]*30 # Testing at 30k
+
+coef(child.pov.lm2)[2] + 2*coef(child.pov.lm2)[3]*100 # Testing at 100k
+
+  
+# When median.income is at 30k, an additional 1000 dollars will lead percent.child.poverty to decrease by 1.23, or 123%.
+
+# When median.income is at 100k, an additional 1000 dollars will lead percent.child.poverty to increase by 0.33, or 33%.
+
+# This test shows what looks like diminishing returns to median.income at a certain point, as it relates to this issue.
+# The 1,000 difference appears to have a more notable impact on reducing child poverty when median.income is around $30k, 
+# whereas this additional 1000 dollars in median.income makes less of a difference when the median income is closer to $100k.
+
+# 6. A possible confounding variable to this relationship is the unemployment rate, which may affect both the 
+# median income of a county and the percent of children living in poverty. Use the cor() function to investigate 
+# the relationships between median income, unemployment, and child poverty. Based on the pattern of correlations, 
+# what is likely to happen to the coefficient on median.income if you add unemployment rate to the first regression 
+# model (the one without the polynomial terms)?
+
+# Disclaimer: I think cor might have been replaced with cor.test, as cor only produces NAs.
+
+cor.test(acs$median.income, acs$percent.child.poverty, method = "pearson")
+
+cor.test(acs$median.income, acs$unemployment.rate, method = "pearson")
+
+cor.test(acs$percent.child.poverty, acs$unemployment.rate, method = "pearson")
+
+# Based on our analysis of the relationships between median.income, unemployment.rate, and percent.child.poverty, 
+# we can state with near certainty that median.income and percent.child.poverty are strongly correlated. 
+# This is based on the fact that our confidence interval does not contain the null value and our p-value (< 2.2e-16)
+# indicates a statistically significant relationship.
+
+# Similarly, median.income and unemployment.rate are highly correlated for the same reasons that median.income 
+# and percent.child.poverty are correlated (confidence interval, p-value demonstrating significance).
+
+# Percent.child.poverty and unemployment.rate are also highly correlated for the same reasons that median.income 
+# and percent.child.poverty are correlated (confidence interval, p-value demonstrating significance).
+
+# Overall, this leads us to believe adding unemployment.rate to the first regression model makes the coefficient for 
+# median.income smaller, as median.income co-varies with both the other unemployment.rate (explanatory) 
+# and the percent.child.poverty (outcome variable).
+
+# 7. Run this regression with unemployment rate and median income (no polynomial terms), and determine the degree to 
+# which the coefficient on median.income changes. Interpret the other coefficients in the model as well, being sure 
+# to adjust your language to the fact that there are now multiple independent variables.
+
+child.pov.lm3 <- lm(percent.child.poverty ~ median.income + unemployment.rate, data = acs)
+
+summary(child.pov.lm3)
+
+# The intercept for this regression tells us that the average value of percent.child.poverty will be 36.66%
+# when the values of median.income and unemployment.rate are 0.
+
+# The coefficients for this regression tell us that when median.income increases by $1000, percent.child.poverty will
+# decrease by 0.44, assuming all other variables remain constant. They also tell us that when unemployment.rate 
+# increases by one percent, percent.child.poverty will increase by 1.37, assuming all other variables remain constant.
+
+# The coefficient of -0.44 for median.income in contrast to our earlier test of how median.income affects percent.child.poverty, 
+# our coefficient of -0.61 for median.income means including unemployment.rate in our model--thus, controlling for 
+# unemployment.rate when evaluating the effect of median.income--nominally reduced the explanatory effect of
+# median.income. In other words, confirms the results in Question 6 where unemployment.rate co-varies with both 
+# median.income and percent.child.poverty.
+
+# 8. Another possible confounding variable is the census region people are living in. For example, living in the 
+# south could be associated with both lower average incomes and more child poverty. Create an indicator 
+# variable for the 4 census regions (or change the variable into a factor variable) and then re-estimate the 
+# regression with median income and unemployment to take into account which region each county is in. Interpret the 
+# coefficients from this regression.
+
+acs$census.region <- as.factor(acs$census.region) #Recoding to make usable
+
+child.pov.lm4 <- lm(percent.child.poverty ~ median.income + unemployment.rate + census.region, 
+           data = acs)
+
+summary(child.pov.lm4)
+
+# The intercept for this regression tells us the average value of percent.child.poverty will be 33.28% in our 
+# census region reference group (the Midwest) when median.income and 
+# unemployment.rate are 0.
+
+# The coefficients for this regression tell us that when median.income increases by one point, percent.child.poverty 
+# will decrease by 0.40, holding all other variables constant, and when unemployment.rate increases by one point, 
+# percent.child.poverty will increase by 1.19, holding all other variables constant.
+
+# The coefficients also tell us that percent.child.poverty is 1.83 points higher in the Northeast, 3.55 points 
+# higher in the South, and 0.62 points higher in the West than in the Midwest, assuming the variables remain constant throughout.
+
+# 9. It’s possible that the effect of median income is different conditional on whether a county is urban or not. 
+# Create an indicator variable for whether a county is urban (population density greater or equal to 1000) or not. 
+# Interact this variable with median income in the regression with unemployment rate and census region indicators. 
+# Interpret the coefficients on median income, the urban indicator, and the interaction term.
+
+acs$urban <- NA # Creating the indicator
+
+min(acs$population.density) # Using pop density to determine what parameters might give us the cleanest outcome
+max(acs$population.density)
+
+acs$urban[acs$population.density >= 1000] <- 1 # Building parameters to make urban classification
+acs$urban[acs$population.density < 1000] <- 0
+
+table(acs$urban)
+
+child.pov.lm5 <- lm(percent.child.poverty ~ median.income*urban + unemployment.rate + 
+             census.region, data = acs)
+
+summary(child.pov.lm5)
+
+coef(child.pov.lm5)["median.income"] + coef(child.pov.lm5)["median.income:urban"]*0
+coef(child.pov.lm5)["median.income"] + coef(child.pov.lm5)["median.income:urban"]*1
+
+
+# This intercept tells us the average value of percent.child.poverty will be 35.86% in our census region reference 
+# group (Midwest) when median.income and unemployment.rate are 0.
+
+# The coefficients here now tell us that when median.income increases by 1 point in a non-urban county, 
+# percent.child.poverty will decrease by 0.44. They also tell us that when a county is urban, percent.child.poverty will 
+# decrease by 6.34, assuming variables remain constant.
+
+# The interaction term also tells us that there is a difference of 0.16 in median.income when the county is urban vs. 
+# not.
